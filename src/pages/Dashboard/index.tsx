@@ -1,57 +1,78 @@
-import React from 'react';
+import React, { useState, FormEvent } from 'react';
 import { FiChevronRight } from 'react-icons/fi';
 
-import { Title, Form, Repositories } from './styles';
+import { Title, Form, Repositories, Error } from './styles';
+import api from '../../services/api';
 
 import logo from '../../assets/logo.svg';
 
+interface Reposiotry {
+  full_name: string;
+  description: string;
+  owner: {
+    login: string;
+    avatar_url: string;
+  };
+}
+
 const Dashboard: React.FC = () => {
+  const [repositories, setRepositories] = useState<Reposiotry[]>([]);
+  const [inputValue, setInputValue] = useState('');
+  const [inputError, setInputError] = useState('');
+
+  async function handleAddRepository(event: FormEvent<HTMLFormElement>): Promise<void> {
+    event.preventDefault();
+
+    if (!inputValue) {
+      setInputError('Digite autor/nome do repositório');
+      return;
+    }
+
+    try {
+      const response = await api.get<Reposiotry>(`repos/${inputValue}`);
+
+      const repository = response.data;
+
+      setRepositories([...repositories, repository]);
+      setInputValue('');
+      setInputError('');
+    } catch (Err) {
+      setInputError('Erro na busca por esse repositório');
+    }
+
+  }
+
   return (
     <>
       <img src={logo} alt="logo github" />
       <Title>Explore repositórios no Github</Title>
 
-      <Form>
-        <input type="text" placeholder="Digite o nome de um repositório" />
+
+      <Form hasError={!!inputError} onSubmit={handleAddRepository}>
+        <input
+          value={inputValue}
+          onChange={e => setInputValue(e.target.value)}
+          placeholder="Digite o nome de um repositório"
+        />
+
         <button>Pesquisar</button>
       </Form>
 
+      { inputError && <Error>
+        {inputError}
+      </Error>}
+
       <Repositories>
-        <a href="/">
-          <img src="https://avatars2.githubusercontent.com/u/20196107?s=400&u=82df4efc2a7a47f544c201559e73eb2ed4d2138c&v=4" alt="avatar" />
-          <div>
-            <strong>katanumerosromanos</strong>
-            <p>Código do nosso Kata realizado no Dojo - Problema do conversor dos números romanos</p>
-          </div>
-          <FiChevronRight size={20} />
-        </a>
-
-        <a href="/">
-          <img src="https://avatars2.githubusercontent.com/u/20196107?s=400&u=82df4efc2a7a47f544c201559e73eb2ed4d2138c&v=4" alt="avatar" />
-          <div>
-            <strong>katanumerosromanos</strong>
-            <p>Código do nosso Kata realizado no Dojo - Problema do conversor dos números romanos</p>
-          </div>
-          <FiChevronRight size={20} />
-        </a>
-
-        <a href="/">
-          <img src="https://avatars2.githubusercontent.com/u/20196107?s=400&u=82df4efc2a7a47f544c201559e73eb2ed4d2138c&v=4" alt="avatar" />
-          <div>
-            <strong>katanumerosromanos</strong>
-            <p>Código do nosso Kata realizado no Dojo - Problema do conversor dos números romanos</p>
-          </div>
-          <FiChevronRight size={20} />
-        </a>
-
-        <a href="/">
-          <img src="https://avatars2.githubusercontent.com/u/20196107?s=400&u=82df4efc2a7a47f544c201559e73eb2ed4d2138c&v=4" alt="avatar" />
-          <div>
-            <strong>katanumerosromanos</strong>
-            <p>Código do nosso Kata realizado no Dojo - Problema do conversor dos números romanos</p>
-          </div>
-          <FiChevronRight size={20} />
-        </a>
+        {repositories.map(repository => (
+          <a href="/" key={repository.full_name}>
+            <img src={repository.owner.avatar_url} alt={repository.owner.login} />
+            <div>
+              <strong>{repository.full_name}</strong>
+              <p>{repository.description}</p>
+            </div>
+            <FiChevronRight size={20} />
+          </a>
+        ))}
       </Repositories>
     </>
   )
